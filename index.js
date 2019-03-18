@@ -21,7 +21,7 @@ server.get('/api/users', (req, res) => {
             res.status(200).json(users);
         })
         .catch(error => {
-            res.status(500).json({ message: 'error returning users' });
+            res.status(500).json({ error: "The users information could not be retrieved." });
         });
 });
 
@@ -48,13 +48,13 @@ server.post('/api/users', (req, res) => {
     db.insert(userInfo)
         .then(user => {
             if (userInfo.name === "" || userInfo.bio === "") {
-                res.status(400).json({ errorMessage: "Please provide name and bio for the user." });
+                res.status(400).json({ errorMessage: "Please provide name and bio for the user." }).end();
             } else {
                 res.status(201).json(user);
             }
         })
         .catch(error => {
-            res.status(500).json({ message: 'error creating user' });
+            res.status(500).json({ error: "There was an error while saving the user to the database." });
         });
 });
 
