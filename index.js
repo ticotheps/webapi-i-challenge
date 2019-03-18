@@ -54,20 +54,24 @@ server.post('/api/users', (req, res) => {
         });
 });
 
-// Creates a user using the information sent inside the request body.
-// server.put('/api/users/, (req, res) => {
-//     const id = req.params.id;
-//     const userInfo = req.body;
-//     console.log('user information ', userInfo);
+// Updates the user with the specified id using data from the request body.
+// Returns modified document, NOT the original.
+server.put('/api/users/:id', (req, res) => {
+    const { id } = req.params;
+    const user = req.body;
 
-//     db.update(id, userInfo)
-//         .then(user => {
-//             res.status(201).json(user);
-//         })
-//         .catch(error => {
-//             res.status(500).json({ message: 'error creating user' });
-//         });
-// });
+    db.update(id, user)
+        .then(updated => {
+            if (updated) {
+                res.status(200).json(updated);
+            } else {
+                res.status(404).json({ message: 'user not found' });
+            }
+        })
+        .catch(error => {
+            res.status(500).json({ message: 'error updating user' });
+        });
+});
 
 server.listen(4000, () => {
     console.log('API up and running on port 4000');
