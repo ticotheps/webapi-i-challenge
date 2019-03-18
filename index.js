@@ -47,7 +47,11 @@ server.post('/api/users', (req, res) => {
 
     db.insert(userInfo)
         .then(user => {
-            res.status(201).json(user);
+            if (userInfo.name === "" || userInfo.bio === "") {
+                res.status(400).json({ errorMessage: "Please provide name and bio for the user." });
+            } else {
+                res.status(201).json(user);
+            }
         })
         .catch(error => {
             res.status(500).json({ message: 'error creating user' });
