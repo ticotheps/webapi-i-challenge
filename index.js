@@ -41,6 +41,34 @@ server.get('/api/users/:id', (req, res) => {
         });
 });
 
+// Creates a user using the information sent inside the request body.
+server.post('/api/users', (req, res) => {
+    const userInfo = req.body;
+
+    db.insert(userInfo)
+        .then(user => {
+            res.status(201).json(user);
+        })
+        .catch(error => {
+            res.status(500).json({ message: 'error creating user' });
+        });
+});
+
+// Creates a user using the information sent inside the request body.
+// server.put('/api/users/, (req, res) => {
+//     const id = req.params.id;
+//     const userInfo = req.body;
+//     console.log('user information ', userInfo);
+
+//     db.update(id, userInfo)
+//         .then(user => {
+//             res.status(201).json(user);
+//         })
+//         .catch(error => {
+//             res.status(500).json({ message: 'error creating user' });
+//         });
+// });
+
 server.listen(4000, () => {
     console.log('API up and running on port 4000');
 });
