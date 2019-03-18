@@ -3,11 +3,11 @@ const knexConfig = require('../knexfile.js');
 const db = knex(knexConfig.development);
 
 module.exports = {
-  find,
-  findById,
-  insert,
-  update,
-  remove,
+  find: find,
+  findById: findById,
+  insert: insert,
+  update: update,
+  remove: remove,
 };
 
 function find() {
