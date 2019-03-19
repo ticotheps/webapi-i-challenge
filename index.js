@@ -1,126 +1,181 @@
-// implement your API here
 const express = require('express');
+const cors = require('cors');
+const db = require('./data/db');
 
-const db = require('./data/db.js');
-
+const port = 5555;
 const server = express();
-server.use(express.json());
+server.use(express.json()); // This middleware (express.json()) is used to parse data coming in
+server.use(cors({ origin: 'http://localhost:3000' })); // cors is used to enable communication from other ports/URLs
 
-server.get('/', (req, res) => {
-    res.send('The Express server for the Users Project is LIVE!');
+const sendUserError = (status, message, res) => {
+  // This is just a helper method that we'll use for sending errors when things go wrong.
+  res.status(status).json({ errorMessage: message });
+  return;
+};
+
+const customLogger = (req, res, next) => {
+  // Here we have custom middleware that we can use throughout our application
+  const ua = req.headers['user-agent']; // We'll pull off the User Agent details from the req.headers
+  const { path } = req; // we'll pull the path from the URL.
+  const timeStamp = Date.now(); // Create a time stamp
+  const log = { path, ua, timeStamp }; // create our log as an object.
+  const stringLog = JSON.stringify(log); // stringify our object
+  console.log(stringLog); // log out our log
+  next(); // very important to move onto next routeHandler
+};
+
+server.use(customLogger); // we could use our logger middleware like this
+// if we choose to do this we get a chance to use this middleware for EVERY endpoint
+// you should strongly consider whether or not this is necessary.
+
+const searchMiddleWare = (req, res, next) => {
+  if (!req.query.name) {
+    next();
+  }
+  db
+    .find()
+    .then(users => {
+      const { name } = req.query; // take query string
+      const filteredUsers = users.filter(
+        // loop over users
+        // filter out any, that do not match our query string.
+        user => user.name.toLowerCase() === name.toLowerCase()
+      );
+      // save the filtered users on req.users.
+      req.users = filteredUsers;
+      next();
+    })
+    .catch(err => {
+      res.status(500).json({ errorMessage: 'Sumfin bahd!' });
+    });
+};
+
+server.get('/', searchMiddleWare, (req, res) => {
+  // Three ways to pull info off of the req object FROM a user.
+  // 1st req.body
+  // 2nd req.params
+  // 3nd req.query
+  console.log(req.query);
+  console.log(req.users);
+  const { users } = req;
+  if (!users) {
+    res.json('Welcome to express');
+  }
+  if (users.length === 0) {
+    sendUserError(404, `No ${req.query.name} in our database`, res);
+    return;
+  } else {
+    res.json({ users });
+  }
+  // 1st arg: route where a resource can be interacted with
+  // 2nd arg: callback to deal with sending responses, and handling incoming data.
 });
 
-// Returns an array of all the user objects contained in the database
-server.get('/api/users', (req, res) => {
-    db.find()
-        .then(users => {
-            // 200-299 = success
-            // 300-399 = rediret
-            // 400-499 = client error
-            // 500-599 = server error
-            res.status(200).json(users);
-        })
-        .catch(error => {
-            res.status(500).json({ error: "The users information could not be retrieved." });
-        });
-});
-
-// Returns the user object with the specified id
-server.get('/api/users/:id', (req, res) => {
-    const id = req.params.id;
-    db.findById(id)
-        .then(user => {
-            // 200-299 = success
-            // 300-399 = rediret
-            // 400-499 = client error
-            // 500-599 = server error
-            res.status(200).json(user);
-        })
-        .catch(error => {
-            res.status(500).json({ message: 'error returning user with matching id' });
-        });
-});
-
-// Creates a user using the information sent inside the request body.
 server.post('/api/users', (req, res) => {
-	const { name, bio, created_at, updated_at } = req.body;
-	const user = req.body;
-
-    if (!name || !bio) {
-        res.status(400).json({ 
-            errorMessage: "Please provide name and bio for the user." 
-        });
-		return;
-	}
-	
-	db.insert(user)
-	.then(user => {
-		res.status(201).json(user);
-	})
-	.catch(error => {
-		console.log(error);
-		res.status(500).json({ 
-			error: "There was an error while saving the user to the database." 
-		});
-	});
+  const { name, bio, created_at, updated_at } = req.body;
+  if (!name || !bio) {
+    sendUserError(400, 'Must provide name and bio', res);
+    return;
+  }
+  db
+    .insert({
+      name,
+      bio,
+      created_at,
+      updated_at
+    })
+    .then(response => {
+      res.status(201).json(response);
+    })
+    .catch(error => {
+      console.log(error);
+      sendUserError(400, error, res);
+      return;
+    });
 });
 
-// Updates the user with the specified id using data from the request body.
-// Returns modified document, NOT the original.
-server.put('/api/users/:id', (req, res) => {
-    const { name, bio, id } = req.params;
-	const user = req.body;
-	
-	// if (id !== 0) {
-    //     res.status(400).json({ 
-    //         errorMessage: "Please provide name and bio for the user." 
-    //     });
-	// 	return;
-	// }
+server.get('/api/users', (req, res) => {
+  db
+    .find()
+    .then(users => {
+      res.json({ users });
+    })
+    .catch(error => {
+      sendUserError(500, 'The users information could not be retrieved.', res);
+      return;
+    });
+});
 
-    db.update(id, user)
-        .then(user => {
-            if (!id) {
-				res.status(404).json({ message: 'user with that id was not found' });
-				return;
-            } else {
-                db.findById(id)
-        			.then(updated => {
-						if(user.length === 0) {
-							res.status(404).json({ message: 'Error looking up user' });
-							return;
-						}
-						res.status(200).json({ message: 'User information was successfully updated.' });
-					})
-					.catch(error => {
-						res.status(500).json({ message: 'Error updating user' });
-					});   
-			}
-		})
-		.catch(error => {
-			res.status(500).json({ message: 'Error looking up user' });
-		});
+server.get('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  db
+    .findById(id)
+    .then(user => {
+      if (user.length === 0) {
+        sendUserError(404, 'User with that id not found', res);
+        return;
+      }
+      res.json(user);
+    })
+    .catch(error => {
+      sendUserError(500, 'Error looking up user', res);
+    });
+  // invoke proper db.method(id) passing it the id.
+  // handle the promise like above
 });
 
 server.delete('/api/users/:id', (req, res) => {
-	const { id } = req.params;
-	console.log(id);
-	
-	if (id === 0) {
-		res.status(404).json({ message: 'The user with that ID does not exist.' });
-		return;
-	} else {
-		db
-		.remove(id)
-		.then(res => {
-			  res.status(204).end();
-		})
-		.catch(error => {
-			  res.status(500).json({ message: 'The user could not be removed.' });
-		});
-	}
-  });
-
-server.listen(4000, () => {
-    console.log('API up and running on port 4000');
+  const { id } = req.params;
+  db
+    .remove(id)
+    .then(response => {
+      if (response === 0) {
+        sendUserError(404, 'The user with that ID does not exist."', res);
+        return;
+      }
+      res.json({ success: `User with id: ${id} removed from system` });
+    })
+    .catch(error => {
+      sendUserError(500, 'The user could not be removed', res);
+      return;
+    });
 });
+
+server.put('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, bio } = req.body;
+  if (!name || !bio) {
+    sendUserError(400, 'Must provide name and bio', res);
+    return;
+  }
+  db
+    .update(id, { name, bio })
+    .then(response => {
+      if (response == 0) {
+        sendUserError(
+          404,
+          'The user with the specified ID does not exist.',
+          res
+        );
+        return;
+      }
+      db
+        .findById(id)
+        .then(user => {
+          if (user.length === 0) {
+            sendUserError(404, 'User with that id not found', res);
+            return;
+          }
+          res.json(user);
+        })
+        .catch(error => {
+          sendUserError(500, 'Error looking up user', res);
+        });
+    })
+    .catch(error => {
+      sendUserError(500, 'Something bad happened in the database', res);
+      return;
+    });
+});
+
+server.listen(port, () => console.log(`Server running on port ${port}`));

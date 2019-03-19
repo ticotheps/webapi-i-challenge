@@ -3,11 +3,11 @@ const knexConfig = require('../knexfile.js');
 const db = knex(knexConfig.development);
 
 module.exports = {
-  find: find,
-  findById: findById,
-  insert: insert,
-  update: update,
-  remove: remove,
+  find,
+  findById,
+  insert,
+  update,
+  remove,
 };
 
 function find() {
@@ -15,9 +15,7 @@ function find() {
 }
 
 function findById(id) {
-  return db('users')
-    .where({ id: Number(id) })
-    .first();
+  return db('users').where({ id: Number(id) });
 }
 
 function insert(user) {
