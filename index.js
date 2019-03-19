@@ -1,6 +1,6 @@
 // implement your API here
 const express = require('express');
-
+const cors = require('cors');
 const db = require('./data/db.js');
 
 const server = express();
@@ -43,18 +43,29 @@ server.get('/api/users/:id', (req, res) => {
 
 // Creates a user using the information sent inside the request body.
 server.post('/api/users', (req, res) => {
-    const userInfo = req.body;
+    const { name, bio, created_at, updated_at } = req.body;
 
-    db.insert(userInfo)
-        .then(user => {
-            if (userInfo.name === "" || userInfo.bio === "") {
-                res.status(400).json({ errorMessage: "Please provide name and bio for the user." }).end();
-            } else {
-                res.status(201).json(user);
-            }
+    if (!name || !bio) {
+        res.status(400).json({ 
+            errorMessage: "Please provide name and bio for the user." 
+        });
+        res.send(res);
+    }
+    db
+        .insert({
+            name, 
+            bio, 
+            created_at, 
+            updated_at
+        })
+        .then(res => {
+            res.status(201).json(user);
         })
         .catch(error => {
-            res.status(500).json({ error: "There was an error while saving the user to the database." });
+            console.log(error);
+            res.status(500).json({ 
+                error: "There was an error while saving the user to the database." 
+            });
         });
 });
 
