@@ -1,6 +1,6 @@
 // implement your API here
 const express = require('express');
-const cors = require('cors');
+
 const db = require('./data/db.js');
 
 const server = express();
@@ -87,6 +87,21 @@ server.put('/api/users/:id', (req, res) => {
             res.status(500).json({ message: 'error updating user' });
         });
 });
+
+server.delete('/api/users/:id', (req, res) => {
+    const { id } = req.params;
+    db
+      .remove(id)
+      .then(res => {
+        if (res === 0) {
+            res.status(404).json({ message: 'The user with that ID does not exist.' });
+        }
+            res.status(200).json({ message: `User with id: ${id} removed from system` });
+      })
+      .catch(error => {
+            res.status(500).json({ message: 'The user could not be removed.' });
+      });
+  });
 
 server.listen(4000, () => {
     console.log('API up and running on port 4000');
