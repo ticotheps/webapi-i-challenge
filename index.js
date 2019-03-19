@@ -43,49 +43,63 @@ server.get('/api/users/:id', (req, res) => {
 
 // Creates a user using the information sent inside the request body.
 server.post('/api/users', (req, res) => {
-    const { name, bio, created_at, updated_at } = req.body;
+	const { name, bio, created_at, updated_at } = req.body;
+	const user = req.body;
 
     if (!name || !bio) {
         res.status(400).json({ 
             errorMessage: "Please provide name and bio for the user." 
         });
-        res.send(res);
-    }
-    db
-        .insert({
-            name, 
-            bio, 
-            created_at, 
-            updated_at
-        })
-        .then(res => {
-            res.status(201).json(user);
-        })
-        .catch(error => {
-            console.log(error);
-            res.status(500).json({ 
-                error: "There was an error while saving the user to the database." 
-            });
-        });
+		return;
+	}
+	
+	db.insert(user)
+	.then(user => {
+		res.status(201).json(user);
+	})
+	.catch(error => {
+		console.log(error);
+		res.status(500).json({ 
+			error: "There was an error while saving the user to the database." 
+		});
+	});
 });
 
 // Updates the user with the specified id using data from the request body.
 // Returns modified document, NOT the original.
 server.put('/api/users/:id', (req, res) => {
-    const { id } = req.params;
-    const user = req.body;
+    const { name, bio, id } = req.params;
+	const user = req.body;
+	
+	// if (id !== 0) {
+    //     res.status(400).json({ 
+    //         errorMessage: "Please provide name and bio for the user." 
+    //     });
+	// 	return;
+	// }
 
     db.update(id, user)
-        .then(updated => {
-            if (updated) {
-                res.status(200).json(updated);
+        .then(user => {
+            if (!id) {
+				res.status(404).json({ message: 'user with that id was not found' });
+				return;
             } else {
-                res.status(404).json({ message: 'user not found' });
-            }
-        })
-        .catch(error => {
-            res.status(500).json({ message: 'error updating user' });
-        });
+                db.findById(id)
+        			.then(updated => {
+						if(user.length === 0) {
+							res.status(404).json({ message: 'Error looking up user' });
+							return;
+						}
+						res.status(200).json({ message: 'User information was successfully updated.' });
+					})
+					.catch(error => {
+						res.status(500).json({ message: 'Error updating user' });
+					});   
+			}
+		})
+		.catch(error => {
+			res.status(500).json({ message: 'Error looking up user' });
+		});
 });
 
 server.delete('/api/users/:id', (req, res) => {
