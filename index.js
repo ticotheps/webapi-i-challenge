@@ -5,7 +5,7 @@ const db = require('./data/db');
 const port = 5555;
 const server = express();
 server.use(express.json()); // This middleware (express.json()) is used to parse data coming in
-server.use(cors({ origin: 'http://localhost:3000' })); // cors is used to enable communication from other ports/URLs
+// server.use(cors({ origin: 'http://localhost:3000' })); // cors is used to enable communication from other ports/URLs
 
 const sendUserError = (status, message, res) => {
   // This is just a helper method that we'll use for sending errors when things go wrong.
@@ -72,26 +72,43 @@ server.get('/', searchMiddleWare, (req, res) => {
 });
 
 server.post('/api/users', (req, res) => {
-  const { name, bio, created_at, updated_at } = req.body;
-  if (!name || !bio) {
-    sendUserError(400, 'Must provide name and bio', res);
-    return;
+  // const { name, bio, created_at, updated_at } = req.body;
+  // if (!name || !bio) {
+  //   sendUserError(400, 'Must provide name and bio', res);
+  //   return;
+  // }
+  // db
+  //   .insert({
+  //     name,
+  //     bio,
+  //     created_at,
+  //     updated_at
+  //   })
+  //   .then(response => {
+  //     res.status(201).json(response);
+  //   })
+  //   .catch(error => {
+  //     console.log(error);
+  //     sendUserError(400, error, res);
+  //     return;
+  //   });
+
+  const newUser = req.body;
+
+  if (req.body.hasOwnProperty('name') && req.body.hasOwnProperty('bio')) {
+    db
+      .insert(newUser)
+      .then(newUser => {
+        res.status(200).json({ message: "All good here, Captain!" })
+      })
+      .catch(error => {
+        res.status(500).json({ message: "Sorry there was a hiccup!" });
+        console.log(error);
+      })
+  } else {
+    res.status(400).json({ message: "Please provide name and bio!" })
   }
-  db
-    .insert({
-      name,
-      bio,
-      created_at,
-      updated_at
-    })
-    .then(response => {
-      res.status(201).json(response);
-    })
-    .catch(error => {
-      console.log(error);
-      sendUserError(400, error, res);
-      return;
-    });
+
 });
 
 server.get('/api/users', (req, res) => {
